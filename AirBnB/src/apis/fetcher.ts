@@ -1,5 +1,6 @@
 import axios from 'axios';
-import { Content} from '../interfaces/user.interface';
+import { Content } from '../interfaces/user.interface';
+
 
 
 const fetcher = axios.create({
@@ -9,12 +10,12 @@ const fetcher = axios.create({
   },
 });
 
-// fetcher.interceptors.request.use((config: any) => {
-//   const user = JSON.parse(localStorage.getItem('currentUser') || '{}') as Content;
-//   if (user) {
-//     config.headers['Authorization'] = `Bearer ${user.token}`;
-//   }
-//   return config;
-// });
+fetcher.interceptors.request.use((config: any) => {
+  const user = JSON.parse(localStorage.getItem('currentUser') || '{}') as Content;
+  if (user) {
+    config.headers['Authorization'] = `Bearer ${user.token}`;
+  }
+  return config;
+});
 
 export default fetcher;

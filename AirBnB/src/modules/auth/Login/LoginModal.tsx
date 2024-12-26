@@ -51,13 +51,12 @@ const LoginModal: React.FC<LoginModalProps> = ({ open, onClose }) => {
   const { mutate: handleLogin, isPending } = useMutation({
     mutationFn: (body: FormValues) => userApi.login(body),
     onSuccess: (currentUser) => {
-      const { user } = currentUser;
+      console.log("currentUser",currentUser)
       toast.success('Đăng nhập thành công');
-      dispatch(setCurrentUser(user));
-      if (user.role === 'ADMIN') {
-        navigate(PATH.HOME);
+      dispatch(setCurrentUser(currentUser));
+      if (currentUser?.user?.role === 'ADMIN') {
+        navigate(PATH.ADMIN.ROOT);
       }
-      console.log('success', user);
       onClose();
     },
     onError: (error: { message: string }) => {
@@ -86,12 +85,14 @@ const LoginModal: React.FC<LoginModalProps> = ({ open, onClose }) => {
           <form onSubmit={handleSubmit(onSubmit)} className="w-full">
             <Stack spacing={4} width="100%">
               <TextField
-                {...register('email')}
-                label="Tài Khoản *"
-                placeholder="Nhập tài khoản"
+                {...register("email")}
+                label="Email *"
                 fullWidth
                 variant="outlined"
+                error={!!errors.email}
+                helperText={errors.email?.message}
               />
+
 
               <TextField
                 {...register('password')}

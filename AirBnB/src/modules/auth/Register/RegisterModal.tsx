@@ -10,11 +10,8 @@ import { format } from 'date-fns';
 import { useMutation } from '@tanstack/react-query';
 import { userApi } from '../../../apis/user.api';
 // import { toast } from 'react-toastify';
-import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { setCurrentUser } from '../../../store/slices/user.slice';
-import { PATH } from '../../../routes/path';
-
 
 interface RegisterModalProp {
     open: boolean;
@@ -24,17 +21,21 @@ interface RegisterModalProp {
 const schema = yup.object().shape({
     email: yup.string().required('email không được để trống'),
     password: yup.string().required('Mật khẩu không được để trống').min(4, 'Mật khẩu phải có ít nhất 4 ký tự'),
+    confirmPassword: yup
+        .string()
+        .oneOf([yup.ref('password')], 'Mật khẩu không khớp')
+        .required('Vui lòng xác nhận mật khẩu'),
     name: yup.string().required('Họ và tên không được để trống'),
     phone: yup.string().required('Số điện thoại không được để trống').matches(/^[0-9]+$/, 'Số điện thoại không đúng định dạng'),
-    gender: yup.string().required('Giới tính không được để trống'),
+    gender: yup.boolean().required('Giới tính không được để trống'),
     birthday: yup.string().required('Ngày sinh không được để trống'),
-    role: yup.string().default('USER') 
+    role: yup.string().default('USER')
+
 })
 
 type FormValues = yup.InferType<typeof schema>;
 
 const RegisterModal: React.FC<RegisterModalProp> = ({ open, onClose }) => {
-    const navigate = useNavigate();
     const dispatch = useDispatch();
 
     const {
@@ -42,14 +43,16 @@ const RegisterModal: React.FC<RegisterModalProp> = ({ open, onClose }) => {
         control,
         handleSubmit,
         watch,
+        setError,
         formState: { errors } } = useForm<FormValues>({
             resolver: yupResolver(schema),
             defaultValues: {
                 email: "",
                 password: "",
+                confirmPassword: "",
                 name: "",
                 phone: "",
-                gender: "",
+                gender: true,
                 birthday: "",
                 role: "USER"
             },
@@ -57,34 +60,38 @@ const RegisterModal: React.FC<RegisterModalProp> = ({ open, onClose }) => {
         });
     const [birthday] = watch("birthday");
     const { mutate: handleRegister, isPending } = useMutation({
-        mutationFn: (body: FormValues) => userApi.register({
-            ...body,
-            gender: body.gender === "true"
-        }),
+        mutationFn: (body: FormValues) => userApi.register(body),
         onSuccess: (response) => {
-            const { user } = response;
+            const data  = response
             // toast.success('Đăng ký thành công');
-            dispatch(setCurrentUser(user));
-            if (user.role === 'ADMIN') {
-                navigate(PATH.HOME);
-            }
+            console.log("data", data)
+            dispatch(setCurrentUser(data));
+            // if (data.role === "USER") {
+            //     navigate(PATH.HOME);
+            // }
             onClose();
         },
         onError: (error: { message: string }) => {
-            // toast.error(error.message);
-            console.log('error: ', error);
+            if (error.message ===
+                "Yêu cầu không hợp lệ!") {
+                setError('email', {
+                    type: 'manual',
+                    message: 'Email đã tồn tại !',
+                });
+                console.log('setError: ', error);
+            } else {
+                console.log('error: ', error);
+            }
         },
     });
 
     const onSubmit = (formValues: FormValues) => {
         const payload = {
             ...formValues,
-            gender: formValues.gender === "true",
             role: "USER"
         };
         handleRegister({
             ...payload,
-            gender: formValues.gender
         });
     }
 
@@ -117,6 +124,19 @@ const RegisterModal: React.FC<RegisterModalProp> = ({ open, onClose }) => {
                                 variant="outlined"
                                 error={!!errors.password}
                                 helperText={errors.password?.message}
+                                InputProps={{
+                                    className: 'rounded-lg',
+                                }}
+                            />
+                            <TextField
+                                {...register("confirmPassword")}
+                                label="Nhập lại Mật khẩu *"
+                                type="password"
+                                placeholder="Nhập lại mật khẩu"
+                                fullWidth
+                                variant="outlined"
+                                error={!!errors.confirmPassword}
+                                helperText={errors.confirmPassword?.message}
                                 InputProps={{
                                     className: 'rounded-lg',
                                 }}
@@ -163,24 +183,24 @@ const RegisterModal: React.FC<RegisterModalProp> = ({ open, onClose }) => {
                                 />
                             </FormControl>
                             <Controller
-                                    name='birthday'
-                                    control={control}
-                                    render={({ field }) => {
-                                        return (
-                                            <DatePicker
-                                                format='DD/MM/YYYY'
-                                                onChange={(date) => {
-                                                    const formatDate = dayjs(date).format('DD/MM/YYYY');
-                                                    field.onChange(formatDate);
-                                                }}
-                                                defaultValue={
-                                                    birthday ? dayjs(format(birthday, 'dd/MM/yyyy'), 'DD/MM/YYYY') : null
-                                                }
-                                            />
-                                        );
-                                    }}
-                                />
-                            
+                                name='birthday'
+                                control={control}
+                                render={({ field }) => {
+                                    return (
+                                        <DatePicker
+                                            format='DD/MM/YYYY'
+                                            onChange={(date) => {
+                                                const formatDate = dayjs(date).format('DD/MM/YYYY');
+                                                field.onChange(formatDate);
+                                            }}
+                                            defaultValue={
+                                                birthday ? dayjs(format(birthday, 'dd/MM/yyyy'), 'DD/MM/YYYY') : null
+                                            }
+                                        />
+                                    );
+                                }}
+                            />
+
                             <LoadingButton
                                 variant="contained"
                                 color="primary"

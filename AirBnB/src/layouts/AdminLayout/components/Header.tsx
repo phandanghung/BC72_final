@@ -10,19 +10,20 @@ import {
   IconButton,
 } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
-import { logout } from "../../store/slices/user.slice";
-import { RootState } from "../../store/store";
-import { LoginModal } from "../../modules/auth/Login";
-import RegisterModal from "../../modules/auth/Register/RegisterModal";
+
+import { RootState } from "../../../store/store";
+import { logout } from "../../../store/slices/user.slice";
 import { useNavigate } from "react-router-dom";
-import { PATH } from "../../routes/path";
-import MenuIcon from '@mui/icons-material/Menu';
+import { PATH } from "../../../routes/path";
+import { LoginModal } from "../../../modules/auth/Login";
+import RegisterModal from "../../../modules/auth/Register/RegisterModal";
 
 const Header: React.FC = () => {
   const { currentUser } = useSelector((state: RootState) => state.user);
-  console.log("currentUser",currentUser);
-  const data = currentUser?.user;
+  const data = currentUser?.user
+  console.log("dataComponent",currentUser)
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [loginModalOpen, setLoginModalOpen] = useState<boolean>(false);
@@ -45,12 +46,9 @@ const Header: React.FC = () => {
   const handleLogout = () => {
     dispatch(logout());
     setAnchorEl(null);
+    navigate(PATH.HOME)
   }
 
-  const navigate = useNavigate()
-  const goToPage = () => { 
-    navigate(PATH.ADMIN.USERS)
-   }
 
 
   return (
@@ -61,32 +59,19 @@ const Header: React.FC = () => {
     >
       <Toolbar className="flex justify-between items-center">
         <div className="flex items-center">
-        <MenuIcon />
-          <img
-            src="https://demo4.cybersoft.edu.vn/static/media/airbnb-1.aabeefedaf30b8c7011a022cdb5a6425.svg"
-            alt="airbnb"
-            className="h-8"
-          />
-          
-          <span className="text-red-400 px-4 font-bold text-2xl">AirBnB</span>
         </div>
 
         <div className="flex items-center space-x-4">
-          {data ? (
+          {currentUser ? (
             <>
               <IconButton onClick={handleAvatarClick}>
-                <Avatar src={data?.avatar || '/path/to/default/avatar.jpg'} alt="User Avatar" />
+                <Avatar src={data?.avatar || 'https://cdn-icons-png.flaticon.com/512/6596/6596121.png'} alt="User Avatar" />
               </IconButton>
               <Menu
                 anchorEl={anchorEl}
                 open={Boolean(anchorEl)}
                 onClose={handleMenuClose}
               >
-                {data?.role === "ADMIN" && (
-                  <MenuItem onClick={goToPage}>
-                    Go To admin
-                  </MenuItem>
-                )}
                 <MenuItem onClick={handleLogout}>Logout</MenuItem>
               </Menu>
             </>
