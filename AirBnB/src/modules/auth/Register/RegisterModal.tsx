@@ -8,10 +8,11 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import dayjs from 'dayjs';
 import { format } from 'date-fns';
 import { useMutation } from '@tanstack/react-query';
-import { userApi } from '../../../apis/user.api';
+import { userApi } from '../../../apis/admin/userManage/user.api';
 // import { toast } from 'react-toastify';
 import { useDispatch } from 'react-redux';
 import { setCurrentUser } from '../../../store/slices/user.slice';
+import toast from 'react-hot-toast';
 
 interface RegisterModalProp {
     open: boolean;
@@ -63,12 +64,9 @@ const RegisterModal: React.FC<RegisterModalProp> = ({ open, onClose }) => {
         mutationFn: (body: FormValues) => userApi.register(body),
         onSuccess: (response) => {
             const data  = response
-            // toast.success('Đăng ký thành công');
+            toast.success('Đăng ký thành công');
             console.log("data", data)
             dispatch(setCurrentUser(data));
-            // if (data.role === "USER") {
-            //     navigate(PATH.HOME);
-            // }
             onClose();
         },
         onError: (error: { message: string }) => {

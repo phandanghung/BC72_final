@@ -13,7 +13,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import toast from 'react-hot-toast';
 import { LoadingButton } from '@mui/lab';
-import { userApi } from '../../../apis/user.api';
+import { userApi } from '../../../apis/admin/userManage/user.api';
 import { useMutation } from '@tanstack/react-query';
 import { useAppDispatch } from '../../../store/hooks';
 import { useNavigate } from 'react-router-dom';

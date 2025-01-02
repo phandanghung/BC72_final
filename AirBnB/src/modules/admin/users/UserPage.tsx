@@ -5,7 +5,6 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
 import {
   Box,
-  Chip,
   Paper,
   Stack,
   Table,
@@ -15,14 +14,7 @@ import {
   TableHead,
   TableRow,
   Typography,
-  // CircularProgress,
   Pagination,
-  // IconButton,
-  // Dialog,
-  // DialogTitle,
-  // DialogContent,
-  // DialogContentText,
-  // DialogActions,
   Button,
   Breadcrumbs,
   IconButton,
@@ -32,23 +24,27 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
+  TextField,
+  MenuItem,
 } from '@mui/material';
 
-import { Add, PlusOne } from '@mui/icons-material';
-import { userApi } from '../../../apis/user.api';
+import { Add } from '@mui/icons-material';
+import { userApi } from '../../../apis/admin/userManage/user.api';
 import { RootState } from '../../../store/store';
 import { LoadingButton } from '@mui/lab';
 import useOpen from '../../../hooks/open/useOpen';
 import { toast } from 'react-hot-toast';
+import { CurrentUser, updateUser } from '../../../interfaces/user.interface';
 
 
-const UserPage: React.FC= () => {
+const UserPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const { currentUser } = useSelector((state: RootState) => state.user);
+  const [keyword, setKeyword] = useState('');
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['userList', page],
-    queryFn: () => userApi.getListUser(page),
+    queryKey: ['userList', page ,keyword],
+    queryFn: () => userApi.getListUser(page, 10, keyword ),
     enabled: !!currentUser
   });
   const { open, onClose, handleClickOpen } = useOpen();
@@ -59,32 +55,78 @@ const UserPage: React.FC= () => {
 
   const queryClient = useQueryClient();
 
-  const [movieId, setMovieId] = useState<number | null>(null);
+  const [userId, setUserId] = useState<number | null>(null);
+
+  const [isAddOrUpdate, setIsAddOrUpdate] = useState(false);
+
+  const [dataEdit, setDataEdit] = useState<number | null>(null);
+
+  const [emailError, setEmailError] = useState<string | null>(null);
+
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setKeyword(event.target.value);
+    setPage(1);
+  };
+
+
+  const { mutate: mutateAddMovie } = useMutation({
+    mutationFn: (formData: CurrentUser) =>{
+    return userApi.addUser(formData);
+    },
+    onError: () => {
+        toast.error('Thêm user thất bại. Vui lòng thử lại.');
+    },
   
+    onSuccess: () => {
+      toast.success('thêm user thành công');
+      queryClient.invalidateQueries({ queryKey: ['userList', page] });
+    },
+    onSettled: () => {
+      onClose();
+      setUserId(null);
+    },
+  });
+  
+
+  const { mutate: mutateUpdateUser } = useMutation({
+  mutationFn: ({ id, body }: { id: number, body: updateUser }) => userApi.updateUser(id, body),
+  onError: () => {
+    toast.error('Update user failed. Please try again.');
+  },
+  onSuccess: () => {
+    toast.success('User updated successfully.');
+    queryClient.invalidateQueries({ queryKey: ['userList', page] });
+  },
+  onSettled: () => {
+    onClose();
+    setUserId(null);
+  },
+});
+
   const { mutate, isPending } = useMutation({
     mutationFn: (id: number) => userApi.deleteUser(id),
-    onError: (error) => {
+    onError: () => {
       toast.error('Xóa user thất bại. Vui lòng thử lại');
     },
-    onSuccess: (response) => {
+    onSuccess: () => {
       toast.success('Xóa user thành công');
       queryClient.invalidateQueries({ queryKey: ['userList', page] });
     },
     onSettled: () => {
       onClose();
-      setMovieId(null);
+      setUserId(null);
     },
   });
   const handleDeleteMovie = () => {
-    if (movieId) {
-      mutate(movieId);
+    if (userId) {
+      mutate(userId);
     }
   };
 
   const handleClose = () => {
     if (!isPending) {
       onClose();
-      setMovieId(null);
+      setUserId(null);
     }
     onClose();
   };
@@ -96,13 +138,24 @@ const UserPage: React.FC= () => {
         <Breadcrumbs aria-label='breadcrumb'>
           <Typography color='text.primary'>Admin</Typography>
           <Typography color='text.primary'>Dashboard</Typography>
-          <Typography color='text.primary'>Movie Management</Typography>
+          <Typography color='text.primary'>User Management</Typography>
         </Breadcrumbs>
 
-        <Button variant='contained' color='primary' startIcon={<Add />}>
+        <Button variant='contained' color='primary' startIcon={<Add />} onClick={() => setIsAddOrUpdate(true)}>
           Add user
         </Button>
       </Stack>
+
+      <Stack>
+      <TextField
+          label="Search Users"
+          variant="outlined"
+          value={keyword}
+          onChange={handleSearchChange}
+          placeholder="Enter keyword..."
+        />
+      </Stack>
+      
 
       <TableContainer component={Paper}>
         <Table>
@@ -133,19 +186,22 @@ const UserPage: React.FC= () => {
                   <TableCell>{item.role}</TableCell>
                   <TableCell>
                     <Stack direction='row' spacing={2}>
-                      <IconButton
-                      // onClick={() => {
-                      //   setDataEdit(item);
-                      //   setIsAddOrUpdate(true);
-                      // }}
+                      <IconButton className='edit'
+                        onClick={() => {
+                          const id = item.id;
+                          if (id !== undefined) {
+                            setIsAddOrUpdate(true)
+                            setDataEdit(id)
+                          }
+                        }}
                       >
-                        <EditOutlinedIcon color='warning' />
+                        <EditOutlinedIcon color='warning' onClick={() => { setIsAddOrUpdate(true) }} />
                       </IconButton>
-                      <IconButton
-                      onClick={() => {
-                        setMovieId(item.id ?? null);
-                        handleClickOpen();
-                      }}
+                      <IconButton className='delete'
+                        onClick={() => {
+                          setUserId(item.id ?? null);
+                          handleClickOpen();
+                        }}
                       >
                         <DeleteOutlineOutlinedIcon color='error' />
                       </IconButton>
@@ -212,15 +268,159 @@ const UserPage: React.FC= () => {
 
 
       {/* ADD OR UPDATE MOVIE DIALOG */}
-      {/* <AddOrUpdateMovie
-        isOpen={isAddOrUpdate}
+      <Dialog
+        open={isAddOrUpdate}
         onClose={() => {
           setIsAddOrUpdate(false);
           setDataEdit(null);
+          setEmailError(null)
         }}
-        onSubmit={handleAddOrEditMovie}
-        dataEdit={dataEdit}
-      /> */}
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const formData: CurrentUser = {
+              id: dataEdit || undefined,
+              name: e.currentTarget.name.value,
+              email: e.currentTarget.email.value,
+              password: e.currentTarget.password.value ? e.currentTarget.password.value : undefined,
+              phone: e.currentTarget.phone.value,
+              birthday: e.currentTarget.birthday.value,
+              avatar: e.currentTarget.avatar.value || null,
+              gender: e.currentTarget.gender.value === 'true',
+              role: e.currentTarget.role?.value
+            };
+            if (items?.some((user) => user.email === formData.email)) {
+              setEmailError('Email đã tồn tại.');
+              return;
+            }
+          
+            setEmailError(null);
+          
+            if (dataEdit) {
+              mutateUpdateUser({ id: dataEdit, body: formData })
+              console.log('Update User', formData);
+            } else {
+              // Add User logic
+              mutateAddMovie(formData);
+            }
+            setIsAddOrUpdate(false);
+            setDataEdit(null);
+          }}
+        >
+          <DialogTitle>{dataEdit ? 'Update User' : 'Add User'}</DialogTitle>
+          <Stack spacing={3} p={3}>
+            {dataEdit && (
+              <TextField
+                label="ID"
+                name="id"
+                defaultValue={dataEdit}
+                fullWidth
+                InputProps={{ readOnly: true }}
+              />
+            )}
+
+            <Box display="flex" gap={2}>
+              <TextField
+                label="Name"
+                name="name"
+                defaultValue={dataEdit ? items?.find((item) => item.id === dataEdit)?.name : ''}
+                required
+                fullWidth
+              />
+              <TextField
+                label="Email"
+                name="email"
+                defaultValue={dataEdit ? items?.find((item) => item.id === dataEdit)?.email : ''}
+                required
+                error={!!emailError}
+                helperText={emailError || ''}
+                fullWidth
+              />
+            </Box>
+
+            <Box display="flex" gap={2}>
+                  <TextField
+                  label="Password"
+                  name="password"
+                  required={!dataEdit}
+                  placeholder='Enter password'
+                  type="password"
+                  fullWidth
+                  disabled={!!dataEdit}
+                />
+              
+              <TextField
+                label="Phone"
+                name="phone"
+                defaultValue={dataEdit ? items?.find((item) => item.id === dataEdit)?.phone : ''}
+                required
+                fullWidth
+              />
+            </Box>
+
+            <Box display="flex" gap={2}>
+              <TextField
+                label="Birthday"
+                name="birthday"
+                type="date"
+                defaultValue={dataEdit ? items?.find((item) => item.id === dataEdit)?.birthday : ''}
+                required
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField
+                label="Avatar (URL)"
+                name="avatar"
+                defaultValue={dataEdit ? items?.find((item) => item.id === dataEdit)?.avatar : ''}
+                placeholder="Optional"
+                type="url"
+                fullWidth
+              />
+            </Box>
+
+            <Box display="flex" gap={2}>
+              <TextField
+                label="Gender"
+                name="gender"
+                select
+                defaultValue={dataEdit ? `${items?.find((item) => item.id === dataEdit)?.gender}` : 'true'}
+                required
+                fullWidth
+              >
+                <MenuItem value="true">Male</MenuItem>
+                <MenuItem value="false">Female</MenuItem>
+              </TextField>
+              <TextField
+                label="Role"
+                name="role"
+                select
+                defaultValue={dataEdit ? items?.find((item) => item.id === dataEdit)?.role : 'USER'}
+                required
+                fullWidth
+              >
+                <MenuItem value="ADMIN">Admin</MenuItem>
+                <MenuItem value="USER">User</MenuItem>
+              </TextField>
+            </Box>
+          </Stack>
+          <DialogActions>
+            <Button variant="outlined" 
+            onClick={() => {
+              setIsAddOrUpdate(false);
+              setEmailError(null)
+            }   
+            }>
+              Cancel
+            </Button>
+            <Button type="submit" variant="contained" color="primary">
+              {dataEdit ? 'Update' : 'Add'}
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+
+
     </Box>
   );
 }

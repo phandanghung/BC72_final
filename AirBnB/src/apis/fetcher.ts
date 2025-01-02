@@ -13,8 +13,9 @@ const fetcher = axios.create({
 fetcher.interceptors.request.use((config: any) => {
   const user = JSON.parse(localStorage.getItem('currentUser') || '{}') as Content;
   if (user) {
-    config.headers['Authorization'] = `Bearer ${user.token}`;
+    config.headers['Authorization'] = `${user.token}`;
   }
+  console.log("user",user.token)
   return config;
 });
 

@@ -10,6 +10,18 @@ export interface CurrentUser {
   gender: boolean;
   role: string;
 }
+
+export interface updateUser {
+  id?: number ;
+  name: string;
+  email: string;
+  phone: string;
+  birthday: string;
+  avatar?: string | null;
+  gender: boolean;
+  role: string;
+}
+
 export interface LoginRequestBody {
   email: string;
   password: string;

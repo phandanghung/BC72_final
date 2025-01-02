@@ -18,6 +18,7 @@ import { useNavigate } from "react-router-dom";
 import { PATH } from "../../routes/path";
 import MenuIcon from '@mui/icons-material/Menu';
 
+
 const Header: React.FC = () => {
   const { currentUser } = useSelector((state: RootState) => state.user);
   console.log("currentUser",currentUser);
